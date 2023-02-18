@@ -387,13 +387,39 @@ class LoadStreams:
 
     def preprocess_frame(self, frame):
         alpha = 1.0 # Adjust contrast (1.0 - 3.0)
-        beta = 100 # Adjust brightness (0 - 100)
+        beta = 0 # Adjust brightness (0 - 100)
         frame = cv2.convertScaleAbs(frame, alpha=alpha, beta=beta)
         return frame
+    
+    def background_sub(self, init_bp,frame): # Converts preprocessed image to grayscale for background subtraction
+        mask = init_bp.apply(frame)
+        mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+        mask = cv2.GaussianBlur(mask, (5, 5), 0)
+        mask = cv2.erode(mask, None, iterations=3)
+        mask = cv2.dilate(mask, None, iterations=5)
+        return mask
+
+    def background_sub_v2(self, init_bp,frame): # Retains color for background subtraction
+        
+        # Compute absolute difference between background and current frame
+        diff = cv2.absdiff(init_bp.apply(frame), 0)
+        # Threshold the result to create a binary mask
+        thresh = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)[1]
+
+        # Apply morphology operations to remove noise and fill holes in the mask
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        mask = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+        # Apply the mask to the original color frame
+        result = cv2.bitwise_and(frame, frame, mask=mask)
+        
+        return result
     
     def update(self, i, cap, stream):
         # Read stream `i` frames in daemon thread
         n, f = 0, self.frames[i]  # frame number, frame array
+        bp = cv2.createBackgroundSubtractorMOG2() # Initialize background subtractor
         while cap.isOpened() and n < f:
             n += 1
             cap.grab()  # .read() = .grab() followed by .retrieve()
@@ -401,6 +427,7 @@ class LoadStreams:
                 success, im = cap.retrieve()
                 if success:
                     im = self.preprocess_frame(im)
+                    im = self.background_sub_v2(bp, im)
                     self.imgs[i] = im
                 else:
                     LOGGER.warning('WARNING ⚠️ Video stream unresponsive, please check your IP camera connection.')
