@@ -144,7 +144,10 @@ def run(
                 p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
 
             for *xyxy, conf, cls in det:
+                center_x = (xyxy[2] + xyxy[0])/2
+                center_y = (xyxy[3] + xyxy[1])/2
                 print(f'{names[int(cls)]} (Confidence: {conf}): {int(xyxy[0])}, {int(xyxy[1])}, {int(xyxy[2])}, {int(xyxy[3])}')
+                print(f'Position: {int(center_x)}, {int(center_y)}')
 
             p = Path(p)  # to Path
             save_path = str(save_dir / p.name)  # im.jpg
