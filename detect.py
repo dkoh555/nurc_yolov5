@@ -143,6 +143,9 @@ def run(
             else:
                 p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
 
+            for *xyxy, conf, cls in det:
+                print(f'{names[int(cls)]} (Confidence: {conf}): {int(xyxy[0])}, {int(xyxy[1])}, {int(xyxy[2])}, {int(xyxy[3])}')
+
             p = Path(p)  # to Path
             save_path = str(save_dir / p.name)  # im.jpg
             txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # im.txt

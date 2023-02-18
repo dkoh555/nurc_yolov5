@@ -385,6 +385,12 @@ class LoadStreams:
         if not self.rect:
             LOGGER.warning('WARNING ⚠️ Stream shapes differ. For optimal performance supply similarly-shaped streams.')
 
+    def preprocess_frame(self, frame):
+        alpha = 1.0 # Adjust contrast (1.0 - 3.0)
+        beta = 100 # Adjust brightness (0 - 100)
+        frame = cv2.convertScaleAbs(frame, alpha=alpha, beta=beta)
+        return frame
+    
     def update(self, i, cap, stream):
         # Read stream `i` frames in daemon thread
         n, f = 0, self.frames[i]  # frame number, frame array
@@ -394,6 +400,7 @@ class LoadStreams:
             if n % self.vid_stride == 0:
                 success, im = cap.retrieve()
                 if success:
+                    im = self.preprocess_frame(im)
                     self.imgs[i] = im
                 else:
                     LOGGER.warning('WARNING ⚠️ Video stream unresponsive, please check your IP camera connection.')
